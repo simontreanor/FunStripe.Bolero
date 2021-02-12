@@ -1,0 +1,60 @@
+@page "/"
+@namespace FunStripe.BoleroServer
+@using Bolero.Server.RazorHost
+@inject IBoleroHostConfig BoleroHostConfig
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FunStripe Bolero App</title>
+    <base href="/">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.4/css/bulma.min.css">
+    <link rel="stylesheet" href="css/index.css">
+    <script src="https://js.stripe.com/v3/"></script>
+    <script>
+      var stripe, cardElement;
+      function initStripeJs(apiKey) {
+        stripe = Stripe(apiKey, {"locale": "en-GB"});
+      }
+      function createCardElement(targetElementId) {
+        const elements = stripe.elements();
+        cardElement = elements.create('card');
+        cardElement.mount(targetElementId);
+      }
+      async function authorise(clientSecret, cardholderName) {
+        const {setupIntent, error} = await stripe.confirmCardSetup(
+          clientSecret,
+          {
+            payment_method: {
+              card: cardElement,
+              billing_details: {
+                name: cardholderName.value,
+              }
+            }
+          }
+        );
+        if (error) {
+          throw (error);
+        } else {
+          if (setupIntent.status === 'succeeded') {
+            return (setupIntent.payment_method);
+          }
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <nav class="navbar is-dark" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <a class="navbar-item has-text-weight-bold is-size-5" href="https://fsbolero.io">
+          <img style="height:40px" src="https://github.com/fsbolero/website/raw/master/src/Website/img/wasm-fsharp.png" />
+          &nbsp;
+          FunStripe Bolero
+        </a>
+      </div>
+    </nav>
+    <div id="main">@(await Html.RenderComponentAsync<FunStripe.BoleroClient.Main.MyApp>(BoleroHostConfig))</div>
+    @Html.RenderBoleroScript(BoleroHostConfig)
+  </body>
+</html>
